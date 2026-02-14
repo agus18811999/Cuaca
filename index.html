@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nusantara Weather | Premium Forecast</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        /* --- 1. CONFIG & VARIABLES --- */
+        :root {
+            --font-main: 'Plus Jakarta Sans', sans-serif;
+            
+            /* Premium Gradient Palette */
+            --bg-deep: #0f0c29;
+            --bg-mid: #302b63;
+            --bg-light: #24243e;
+            --accent-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            
+            /* Glassmorphism Tokens */
+            --glass-surface: rgba(255, 255, 255, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.12);
+            --glass-highlight: rgba(255, 255, 255, 0.25);
+            --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --text-muted: rgba(255, 255, 255, 0.5);
+        }
+
+        /* --- 2. RESET & BASE --- */
+        * { margin: 0; padding: 0; box-sizing: border-box; outline: none; }
+        
+        body {
+            font-family: var(--font-main);
+            background: linear-gradient(to bottom right, var(--bg-deep), var(--bg-mid), var(--bg-light));
+            background-attachment: fixed;
+            color: var(--text-primary);
+            min-height: 100vh;
+            width: 100%;
+            overflow-x: hidden; /* Fix mobile scroll */
+            position: relative;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Background Ambient Blobs */
+        .ambient-light {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(100px);
+            z-index: -1;
+            opacity: 0.5;
+            animation: float 10s infinite ease-in-out alternate;
+        }
+        .light-1 { top: -10%; left: -10%; width: 50vw; height: 50vw; background: #4facfe; }
+        .light-2 { bottom: -10%; right: -10%; width: 60vw; height: 60vw; background: #f093fb; animation-delay: -5s; }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(30px, 50px) scale(1.1); }
+        }
+
+        /* --- 3. LAYOUT & UTILITIES --- */
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+        }
+
+        /* --- 4. COMPONENTS --- */
+        
+        /* Glass Card Base */
+        .glass-panel {
+            background: var(--glass-surface);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            box-shadow: var(--glass-shadow);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .glass-panel::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 1px;
+            background: linear-gradient(90deg, transparent, var(--glass-highlight), transparent);
+            opacity: 0.5;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+            background: linear-gradient(to right, #fff, #a5b4fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        .subtitle { color: var(--text-secondary); font-weight: 300; font-size: 1.1rem; }
+
+        /* Search & Filter Bar */
+        .control-bar {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            gap: 20px;
+            padding: 20px;
+            align-items: center;
+        }
+
+        .select-wrapper, .search-wrapper {
+            position: relative;
+        }
+
+        select, input {
+            width: 100%;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--glass-border);
+            color: white;
+            padding: 16px 20px;
+            border-radius: 16px;
+            font-family: var(--font-main);
+            font-size: 1rem;
+            appearance: none;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        select:hover, input:focus { border-color: rgba(255,255,255,0.4); background: rgba(0,0,0,0.5); }
+        
+        /* Dropdown Arrow */
+        .select-wrapper::after {
+            content: '▼';
+            font-size: 0.7rem;
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            pointer-events: none;
+        }
+
+        button.btn-primary {
+            background: var(--accent-gradient);
+            border: none;
+            color: white;
+            padding: 16px 30px;
+            border-radius: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(118, 75, 162, 0.4);
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        button.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(118, 75, 162, 0.6); }
+
+        /* HERO SECTION (Main Weather) */
+        .hero-weather {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            min-height: 400px;
+        }
+
+        .hero-main {
+            padding: 50px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .location-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.1);
+            padding: 8px 16px;
+            border-radius: 50px;
+            align-self: flex-start;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .temp-huge {
+            font-size: 6rem;
+            font-weight: 800;
+            line-height: 1;
+            margin: 10px 0;
+            background: linear-gradient(to bottom, #fff, #cbd5e1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .weather-desc {
+            font-size: 1.5rem;
+            text-transform: capitalize;
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+        }
+
+        .hero-details {
+            background: rgba(0,0,0,0.2);
+            padding: 50px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-content: center;
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .detail-label { font-size: 0.9rem; color: var(--text-muted); display: flex; align-items: center; gap: 5px; }
+        .detail-value { font-size: 1.4rem; font-weight: 600; }
+
+        /* GRID SYSTEM */
+        .grid-section-title {
+            margin-top: 20px;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            border-left: 4px solid #f093fb;
+            padding-left: 15px;
+        }
+
+        .weather-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+        }
+
+        .city-card {
+            padding: 25px;
+            cursor: pointer;
+            position: relative;
+        }
+        .city-card:hover { transform: translateY(-5px); border-color: rgba(255,255,255,0.3); }
+
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
+        .card-city { font-weight: 700; font-size: 1.1rem; line-height: 1.3; }
+        .card-temp { font-size: 2.2rem; font-weight: 700; }
+        .card-icon { width: 50px; height: 50px; }
+        .card-stats { display: flex; gap: 15px; font-size: 0.85rem; color: var(--text-secondary); margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); }
+
+        /* Loading State */
+        .loader {
+            display: none; /* Hidden by default */
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+        }
+        .loader i { animation: spin 1s linear infinite; font-size: 2rem; margin-bottom: 10px; display: block; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* --- 5. MOBILE RESPONSIVE --- */
+        @media (max-width: 768px) {
+            .container { padding: 20px 15px; width: 100%; }
+            .control-bar { grid-template-columns: 1fr; gap: 15px; padding: 15px; }
+            .hero-weather { grid-template-columns: 1fr; text-align: center; }
+            .hero-main { align-items: center; padding: 30px; }
+            .hero-details { grid-template-columns: 1fr 1fr; padding: 30px; gap: 20px; }
+            .temp-huge { font-size: 4.5rem; }
+            h1 { font-size: 1.8rem; }
+            .weather-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ambient-light light-1"></div>
+    <div class="ambient-light light-2"></div>
+
+    <div class="container">
+        <header>
+            <h1>Nusantara Weather</h1>
+            <p class="subtitle">Platform Pemantauan Cuaca Presisi Seluruh Indonesia</p>
+        </header>
+
+        <section class="glass-panel hero-weather" id="heroSection">
+            <div class="hero-main">
+                <div class="location-badge">
+                    <i class="ph ph-map-pin"></i>
+                    <span id="hero-city">Mendeteksi Lokasi...</span>
+                </div>
+                <div class="temp-huge" id="hero-temp">--°</div>
+                <div class="weather-desc" id="hero-desc">Memuat data...</div>
+                <div style="font-size: 0.9rem; color: var(--text-muted);" id="hero-date">--/--/----</div>
+            </div>
+
+            <div class="hero-details">
+                <div class="detail-item">
+                    <span class="detail-label"><i class="ph ph-thermometer"></i> Terasa Seperti</span>
+                    <span class="detail-value" id="hero-feels">--°</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label"><i class="ph ph-drop"></i> Kelembapan</span>
+                    <span class="detail-value" id="hero-humidity">--%</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label"><i class="ph ph-wind"></i> Angin</span>
+                    <span class="detail-value" id="hero-wind">-- km/h</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label"><i class="ph ph-eye"></i> Jarak Pandang</span>
+                    <span class="detail-value" id="hero-vis">-- km</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="glass-panel control-bar">
+            <div class="select-wrapper">
+                <select id="provinceSelect">
+                    <option value="" disabled selected>Pilih Provinsi</option>
+                    </select>
+            </div>
+            <div class="search-wrapper">
+                <input type="text" id="citySearch" placeholder="Cari Kabupaten/Kota spesifik (misal: Malang)...">
+            </div>
+            <button class="btn-primary" onclick="handleSearch()">
+                <i class="ph ph-magnifying-glass"></i> Cari
+            </button>
+        </section>
+
+        <div id="loader" class="loader">
+            <i class="ph ph-spinner"></i>
+            Mengambil Data Satelit...
+        </div>
+
+        <div id="resultSection">
+            <h2 class="grid-section-title" id="gridTitle">Cuaca Kota Populer</h2>
+            <div class="weather-grid" id="weatherGrid">
+                </div>
+        </div>
+
+    </div>
+
+  <script>
+/* =========================================================
+   1. CONFIGURATION
+========================================================= */
+const API_KEY = "70c54862bb11d9cd1e8b19f3343d1821";
+const WEATHER_URL = "https://api.openweathermap.org/data/2.5/weather";
+const GEO_URL = "https://api.openweathermap.org/geo/1.0/direct";
+
+/* =========================================================
+   2. DATA PROVINSI & KOTA (LAT / LON ONLY)
+========================================================= */
+const indonesiaData = {
+ "Aceh": [
+    // --- KOTA (Otonom) ---
+    { label: "Banda Aceh", lat: 5.5483, lon: 95.3238 },
+    { label: "Sabang", lat: 5.8923, lon: 95.3234 },
+    { label: "Lhokseumawe", lat: 5.1802, lon: 97.1446 },
+    { label: "Langsa", lat: 4.4722, lon: 97.9617 },
+    { label: "Subulussalam", lat: 2.6414, lon: 98.0061 },
+
+    // --- KABUPATEN (Pantai Timur & Utara) ---
+    { label: "Aceh Besar (Jantho)", lat: 5.2974, lon: 95.6171 },
+    { label: "Pidie (Sigli)", lat: 5.3853, lon: 95.9592 },
+    { label: "Pidie Jaya (Meureudu)", lat: 5.2536, lon: 96.2411 },
+    { label: "Bireuen", lat: 5.2016, lon: 96.7022 },
+    { label: "Aceh Utara (Lhoksukon)", lat: 5.0506, lon: 97.3197 },
+    { label: "Aceh Timur (Idi Rayeuk)", lat: 4.9602, lon: 97.7766 },
+    { label: "Aceh Tamiang (Karang Baru)", lat: 4.3160, lon: 98.0519 },
+
+    // --- KABUPATEN (Pantai Barat & Selatan) ---
+    { label: "Aceh Jaya (Calang)", lat: 4.6469, lon: 95.5786 },
+    { label: "Aceh Barat (Meulaboh)", lat: 4.1420, lon: 96.1264 },
+    { label: "Nagan Raya (Suka Makmue)", lat: 4.1597, lon: 96.3400 },
+    { label: "Aceh Barat Daya (Blangpidie)", lat: 3.7381, lon: 96.8406 },
+    { label: "Aceh Selatan (Tapaktuan)", lat: 3.2594, lon: 97.1822 },
+    { label: "Aceh Singkil", lat: 2.2747, lon: 97.7958 },
+
+    // --- KABUPATEN (Dataran Tinggi/Tengah) ---
+    { label: "Aceh Tengah (Takengon)", lat: 4.6436, lon: 96.8459 },
+    { label: "Bener Meriah (Simpang Tiga)", lat: 4.7297, lon: 96.8647 },
+    { label: "Gayo Lues (Blangkejeren)", lat: 3.9922, lon: 97.3486 },
+    { label: "Aceh Tenggara (Kutacane)", lat: 3.4862, lon: 97.8080 },
+
+    // --- KABUPATEN (Kepulauan) ---
+    { label: "Simeulue (Sinabang)", lat: 2.4764, lon: 96.3778 }
+],
+"DKI Jakarta": [
+    // --- KOTA ADMINISTRASI ---
+    { label: "Jakarta Pusat", lat: -6.1754, lon: 106.8272 },   // Area Monas/Thamrin
+    { label: "Jakarta Selatan", lat: -6.2615, lon: 106.8106 }, // Area Kemang/Blok M
+    { label: "Jakarta Utara", lat: -6.1214, lon: 106.7741 },   // Area Ancol/Pluit
+    { label: "Jakarta Barat", lat: -6.1683, lon: 106.7588 },   // Area Grogol/Puri
+    { label: "Jakarta Timur", lat: -6.2250, lon: 106.9004 },   // Area Jatinegara/Cakung
+
+    // --- KABUPATEN ADMINISTRASI ---
+    { label: "Kepulauan Seribu", lat: -5.7458, lon: 106.6147 } // Titik di Pulau Pramuka (Ibukota)
+],
+ "Jawa Barat": [
+    // --- KOTA (Metropolitan/Otonom) ---
+    { label: "Bandung (Kota)", lat: -6.9175, lon: 107.6191 }, // Pusat Kota
+    { label: "Bogor (Kota)", lat: -6.5971, lon: 106.7996 },   // Kebun Raya Area
+    { label: "Bekasi (Kota)", lat: -6.2383, lon: 106.9756 },  // Penyangga Jkt
+    { label: "Depok", lat: -6.4025, lon: 106.7942 },          // UI Area
+    { label: "Cimahi", lat: -6.8726, lon: 107.5422 },
+    { label: "Tasikmalaya (Kota)", lat: -7.3274, lon: 108.2207 },
+    { label: "Banjar", lat: -7.3746, lon: 108.5320 },
+    { label: "Sukabumi (Kota)", lat: -6.9277, lon: 106.9300 },
+    { label: "Cirebon (Kota)", lat: -6.7320, lon: 108.5523 },
+
+    // --- KABUPATEN (Bodetabek & Pantura) ---
+    { label: "Bogor (Cibinong)", lat: -6.4797, lon: 106.8447 }, // Ibu Kota Kab
+    { label: "Bekasi (Cikarang)", lat: -6.2941, lon: 107.1687 }, // Kawasan Industri
+    { label: "Karawang", lat: -6.3042, lon: 107.2905 },
+    { label: "Purwakarta", lat: -6.5561, lon: 107.4426 },
+    { label: "Subang", lat: -6.5687, lon: 107.7618 },
+    { label: "Indramayu", lat: -6.3264, lon: 108.3199 },
+    { label: "Cirebon (Sumber)", lat: -6.7610, lon: 108.4800 }, // Ibu Kota Kab
+
+    // --- KABUPATEN (Priangan/Pegunungan) ---
+    { label: "Bandung (Soreang)", lat: -7.0258, lon: 107.5239 }, // Ibu Kota Kab/Ciwidey Arah
+    { label: "Bandung Barat (Ngamprah)", lat: -6.8415, lon: 107.5113 }, // Padalarang/Lembang
+    { label: "Sumedang", lat: -6.8587, lon: 107.9209 },
+    { label: "Garut", lat: -7.2278, lon: 107.9087 },
+    { label: "Tasikmalaya (Singaparna)", lat: -7.3506, lon: 108.1119 }, // Ibu Kota Kab
+    { label: "Ciamis", lat: -7.3262, lon: 108.3537 },
+    { label: "Kuningan", lat: -6.9760, lon: 108.4831 },
+    { label: "Majalengka", lat: -6.8368, lon: 108.2268 },
+    { label: "Cianjur", lat: -6.8206, lon: 107.1425 }, // Puncak Area Bawah
+    { label: "Sukabumi (Palabuhanratu)", lat: -6.9873, lon: 106.5507 }, // Pesisir Pantai
+    
+    // --- KABUPATEN (Pesisir Selatan) ---
+    { label: "Pangandaran", lat: -7.6974, lon: 108.6539 } // Wisata Pantai
+],
+  "Bali": [
+    { label: "Denpasar", lat: -8.6705, lon: 115.2126 },           // Kota Denpasar
+    { label: "Badung (Mangupura)", lat: -8.5878, lon: 115.1738 }, // Ibukota: Mangupura
+    { label: "Gianyar", lat: -8.5441, lon: 115.3250 },            // Ibukota: Gianyar
+    { label: "Tabanan", lat: -8.5416, lon: 115.1235 },            // Ibukota: Tabanan
+    { label: "Bangli", lat: -8.4543, lon: 115.3549 },             // Ibukota: Bangli
+    { label: "Klungkung (Semarapura)", lat: -8.5372, lon: 115.4022 }, // Ibukota: Semarapura
+    { label: "Karangasem (Amlapura)", lat: -8.4456, lon: 115.6027 },  // Ibukota: Amlapura
+    { label: "Buleleng (Singaraja)", lat: -8.1120, lon: 115.0882 },   // Ibukota: Singaraja
+    { label: "Jembrana (Negara)", lat: -8.3615, lon: 114.6309 }            // Ibukota: Negara
+],
+"Jawa Timur": [
+    // --- KOTA BESAR ---
+    { label: "Surabaya", lat: -7.2575, lon: 112.7521 },
+    { label: "Malang (Kota)", lat: -7.9797, lon: 112.6304 },
+    { label: "Batu", lat: -7.8671, lon: 112.5239 },
+    { label: "Madiun (Kota)", lat: -7.6298, lon: 111.5239 },
+    { label: "Kediri (Kota)", lat: -7.8485, lon: 112.0278 },
+    { label: "Mojokerto (Kota)", lat: -7.4727, lon: 112.4346 },
+    { label: "Blitar (Kota)", lat: -8.0983, lon: 112.1681 },
+    { label: "Pasuruan (Kota)", lat: -7.6453, lon: 112.9075 },
+    { label: "Probolinggo (Kota)", lat: -7.7547, lon: 113.2159 },
+
+    // --- KABUPATEN (GERBANGKERTOSUSILA & PANTURA) ---
+    { label: "Sidoarjo", lat: -7.4478, lon: 112.7183 },
+    { label: "Gresik", lat: -7.1539, lon: 112.6561 },
+    { label: "Lamongan", lat: -7.1206, lon: 112.4150 },
+    { label: "Tuban", lat: -6.8976, lon: 112.0649 },
+    { label: "Bojonegoro", lat: -7.1509, lon: 111.8804 },
+
+    // --- KABUPATEN (MATARAMAN/BARAT) ---
+    { label: "Ngawi", lat: -7.3996, lon: 111.4533 },
+    { label: "Magetan", lat: -7.6499, lon: 111.3323 },
+    { label: "Madiun (Caruban)", lat: -7.5615, lon: 111.6627 }, // Pusat Pemerintahan Kab
+    { label: "Ponorogo", lat: -7.8679, lon: 111.4682 },
+    { label: "Pacitan", lat: -8.1996, lon: 111.1070 },
+    { label: "Trenggalek", lat: -8.0563, lon: 111.7107 },
+    { label: "Tulungagung", lat: -8.0729, lon: 111.9009 },
+    { label: "Nganjuk", lat: -7.5986, lon: 111.9127 },
+    { label: "Jombang", lat: -7.5468, lon: 112.2330 },
+    { label: "Kediri (Pare)", lat: -7.7667, lon: 112.1833 }, // Pusat Kampung Inggris/Kab
+    { label: "Blitar (Kanigoro)", lat: -8.1333, lon: 112.2167 }, // Ibu Kota Kab
+
+    // --- KABUPATEN (TAPAL KUDA/TIMUR) ---
+    { label: "Mojokerto (Mojosari)", lat: -7.5167, lon: 112.5500 },
+    { label: "Pasuruan (Bangil)", lat: -7.5975, lon: 112.7833 }, // Ibu Kota Kab
+    { label: "Malang (Kepanjen)", lat: -8.1294, lon: 112.5728 }, // Ibu Kota Kab
+    { label: "Probolinggo (Kraksaan)", lat: -7.7600, lon: 113.4167 }, // Ibu Kota Kab
+    { label: "Lumajang", lat: -8.1333, lon: 113.2167 },
+    { label: "Jember", lat: -8.1724, lon: 113.7007 },
+    { label: "Bondowoso", lat: -7.9108, lon: 113.8214 },
+    { label: "Situbondo", lat: -7.7027, lon: 114.0049 },
+    { label: "Banyuwangi", lat: -8.2192, lon: 114.3692 },
+
+    // --- PULAU MADURA ---
+    { label: "Bangkalan", lat: -7.0305, lon: 112.7410 },
+    { label: "Sampang", lat: -7.1897, lon: 113.2435 },
+    { label: "Pamekasan", lat: -7.1593, lon: 113.4795 },
+    { label: "Sumenep", lat: -7.0094, lon: 113.8597 }
+],
+"Jawa Tengah": [
+    // --- KOTA (Otonom) ---
+    { label: "Semarang (Kota)", lat: -6.9667, lon: 110.4167 },
+    { label: "Surakarta (Solo)", lat: -7.5755, lon: 110.8243 },
+    { label: "Salatiga", lat: -7.3305, lon: 110.5084 },
+    { label: "Magelang (Kota)", lat: -7.4706, lon: 110.2178 },
+    { label: "Pekalongan (Kota)", lat: -6.8886, lon: 109.6753 },
+    { label: "Tegal (Kota)", lat: -6.8694, lon: 109.1402 },
+
+    // --- KABUPATEN (Pantura & Timur) ---
+    { label: "Brebes", lat: -6.8712, lon: 109.0375 },
+    { label: "Tegal (Slawi)", lat: -6.9847, lon: 109.1364 }, // Ibu Kota Kab
+    { label: "Pemalang", lat: -6.8921, lon: 109.3792 },
+    { label: "Pekalongan (Kajen)", lat: -7.0347, lon: 109.5750 }, // Ibu Kota Kab
+    { label: "Batang", lat: -6.9100, lon: 109.7300 },
+    { label: "Kendal", lat: -6.9234, lon: 110.2037 },
+    { label: "Demak", lat: -6.8948, lon: 110.6385 },
+    { label: "Kudus", lat: -6.8052, lon: 110.8415 },
+    { label: "Jepara", lat: -6.5828, lon: 110.6698 },
+    { label: "Pati", lat: -6.7558, lon: 111.0381 },
+    { label: "Rembang", lat: -6.7114, lon: 111.3385 },
+    { label: "Blora", lat: -6.9698, lon: 111.4172 },
+    { label: "Grobogan (Purwodadi)", lat: -7.0872, lon: 110.9150 }, // Ibu Kota Kab
+
+    // --- KABUPATEN (Tengah & Selatan) ---
+    { label: "Semarang (Ungaran)", lat: -7.1396, lon: 110.4071 }, // Ibu Kota Kab
+    { label: "Boyolali", lat: -7.5381, lon: 110.5966 },
+    { label: "Klaten", lat: -7.7056, lon: 110.6027 },
+    { label: "Sukoharjo", lat: -7.6833, lon: 110.8333 },
+    { label: "Wonogiri", lat: -7.8175, lon: 110.9239 },
+    { label: "Karanganyar", lat: -7.5950, lon: 110.9507 },
+    { label: "Sragen", lat: -7.4278, lon: 111.0211 },
+    
+    // --- KABUPATEN (Kedu & Banyumas Raya) ---
+    { label: "Magelang (Mungkid)", lat: -7.5786, lon: 110.2312 }, // Ibu Kota Kab
+    { label: "Temanggung", lat: -7.3117, lon: 110.1731 },
+    { label: "Wonosobo", lat: -7.3630, lon: 109.9001 },
+    { label: "Purworejo", lat: -7.7128, lon: 110.0094 },
+    { label: "Kebumen", lat: -7.6699, lon: 109.6518 },
+    { label: "Banjarnegara", lat: -7.3966, lon: 109.6970 },
+    { label: "Purbalingga", lat: -7.3917, lon: 109.3622 },
+    { label: "Banyumas (Purwokerto)", lat: -7.4245, lon: 109.2302 }, // Pusat Keramaian
+    { label: "Cilacap", lat: -7.7279, lon: 109.0077 }
+],
+"Banten": [
+    // --- KOTA (Otonom) ---
+    { label: "Tangerang (Kota)", lat: -6.1702, lon: 106.6403 },
+    { label: "Tangerang Selatan (Tangsel)", lat: -6.2886, lon: 106.7179 }, // Bintaro/BSD area
+    { label: "Serang (Kota)", lat: -6.1104, lon: 106.1640 },
+    { label: "Cilegon", lat: -6.0174, lon: 106.0538 }, // Area Industri/Pelabuhan
+
+    // --- KABUPATEN ---
+    { label: "Tangerang (Tigaraksa)", lat: -6.2990, lon: 106.4867 }, // Ibu Kota Kab
+    { label: "Serang (Ciruas)", lat: -6.1132, lon: 106.2257 },       // Ibu Kota Kab
+    { label: "Lebak (Rangkasbitung)", lat: -6.3594, lon: 106.2497 }, // Ibu Kota Kab
+    { label: "Pandeglang", lat: -6.3084, lon: 106.1065 }              // Area Wisata/Gunung
+],
+"DI Yogyakarta": [
+    // --- KOTA (Pusat Pemerintahan & Wisata) ---
+    { label: "Yogyakarta (Kota)", lat: -7.7956, lon: 110.3695 }, // Area Malioboro/Kraton
+
+    // --- KABUPATEN ---
+    { label: "Sleman", lat: -7.7145, lon: 110.3598 },             // Lereng Merapi/UGM Atas
+    { label: "Bantul", lat: -7.8929, lon: 110.3292 },             // Area Selatan/Parangtritis
+    { label: "Kulon Progo (Wates)", lat: -7.8576, lon: 110.1587 },// Area Bandara YIA/Barat
+    { label: "Gunung Kidul (Wonosari)", lat: -7.9642, lon: 110.6010 } // Area Pegunungan/Timur
+],
+"Sumatera Utara": [
+    // --- KOTA (Otonom) ---
+    { label: "Medan", lat: 3.5952, lon: 98.6722 },
+    { label: "Binjai", lat: 3.6198, lon: 98.4805 },
+    { label: "Pematangsiantar", lat: 2.9658, lon: 99.0683 },
+    { label: "Tebing Tinggi", lat: 3.3289, lon: 99.1627 },
+    { label: "Tanjungbalai", lat: 2.9651, lon: 99.7997 },
+    { label: "Sibolga", lat: 1.7371, lon: 98.7844 },
+    { label: "Padangsidimpuan", lat: 1.3737, lon: 99.2734 },
+    { label: "Gunungsitoli (Nias)", lat: 1.2825, lon: 97.6163 },
+
+    // --- KABUPATEN (Pesisir Timur & Langkat) ---
+    { label: "Langkat (Stabat)", lat: 3.7667, lon: 98.4500 },
+    { label: "Deli Serdang (Lubuk Pakam)", lat: 3.5606, lon: 98.8687 }, // Area Bandara Kualanamu
+    { label: "Serdang Bedagai (Sei Rampah)", lat: 3.4283, lon: 99.1417 },
+    { label: "Batu Bara (Lima Puluh)", lat: 3.1972, lon: 99.5211 },
+    { label: "Asahan (Kisaran)", lat: 2.9852, lon: 99.6152 },
+    { label: "Labuhanbatu (Rantau Prapat)", lat: 2.1009, lon: 99.8277 },
+    { label: "Labuhanbatu Utara (Aek Kanopan)", lat: 2.5333, lon: 99.6500 },
+    { label: "Labuhanbatu Selatan (Kota Pinang)", lat: 1.8333, lon: 100.0833 },
+
+    // --- KABUPATEN (Dataran Tinggi/Toba/Karo) ---
+    { label: "Karo (Kabanjahe)", lat: 3.1017, lon: 98.4906 },
+    { label: "Dairi (Sidikalang)", lat: 2.7381, lon: 98.3117 },
+    { label: "Pakpak Bharat (Salak)", lat: 2.5833, lon: 98.2667 },
+    { label: "Simalungun (Raya)", lat: 2.9667, lon: 98.8500 }, // Area Danau Toba Utara
+    { label: "Toba (Balige)", lat: 2.3338, lon: 99.0664 },      // Area Danau Toba Selatan
+    { label: "Samosir (Pangururan)", lat: 2.6375, lon: 98.7058 }, // Pulau Samosir
+    { label: "Humbang Hasundutan (Dolok Sanggul)", lat: 2.2619, lon: 98.7511 },
+    { label: "Tapanuli Utara (Tarutung)", lat: 2.0238, lon: 98.9714 },
+
+    // --- KABUPATEN (Tapanuli Selatan & Barat) ---
+    { label: "Tapanuli Tengah (Pandan)", lat: 1.6833, lon: 98.8167 },
+    { label: "Tapanuli Selatan (Sipirok)", lat: 1.6025, lon: 99.2817 },
+    { label: "Mandailing Natal (Panyabungan)", lat: 0.8572, lon: 99.5606 },
+    { label: "Padang Lawas (Sibuhuan)", lat: 1.0567, lon: 99.7150 },
+    { label: "Padang Lawas Utara (Gunung Tua)", lat: 1.4556, lon: 99.6372 },
+
+    // --- KABUPATEN (Kepulauan Nias) ---
+    { label: "Nias (Gido)", lat: 1.1333, lon: 97.7167 },
+    { label: "Nias Selatan (Teluk Dalam)", lat: 0.5667, lon: 97.8167 },
+    { label: "Nias Utara (Lotu)", lat: 1.3333, lon: 97.4167 },
+    { label: "Nias Barat (Lahomi)", lat: 1.0667, lon: 97.4500 }
+],
+"Sumatera Barat": [
+    // --- KOTA (Otonom/Wisata) ---
+    { label: "Padang", lat: -0.9471, lon: 100.4172 },
+    { label: "Bukittinggi", lat: -0.3039, lon: 100.3813 },     // Jam Gadang Area
+    { label: "Payakumbuh", lat: -0.2246, lon: 100.6335 },
+    { label: "Pariaman", lat: -0.6264, lon: 100.1180 },        // Pantai Gandoriah Area
+    { label: "Padang Panjang", lat: -0.4712, lon: 100.3983 },
+    { label: "Solok (Kota)", lat: -0.7956, lon: 100.6588 },
+    { label: "Sawahlunto", lat: -0.6869, lon: 100.7761 },
+
+    // --- KABUPATEN (Darat) ---
+    { label: "Agam (Lubuk Basung)", lat: -0.3167, lon: 100.0333 }, // Ibu Kota Kab
+    { label: "Tanah Datar (Batusangkar)", lat: -0.4500, lon: 100.5833 }, // Istano Pagaruyung Area
+    { label: "Padang Pariaman (Parit Malintang)", lat: -0.6667, lon: 100.2833 },
+    { label: "Lima Puluh Kota (Sarilamak)", lat: -0.1500, lon: 100.6667 }, // Dekat Kelok 9
+    { label: "Pasaman (Lubuk Sikaping)", lat: 0.1264, lon: 100.1606 },
+    { label: "Pasaman Barat (Simpang Empat)", lat: 0.0833, lon: 99.8167 },
+    
+    // --- KABUPATEN (Pesisir & Selatan) ---
+    { label: "Pesisir Selatan (Painan)", lat: -1.3500, lon: 100.5667 },
+    { label: "Solok (Arosuka)", lat: -0.9667, lon: 100.6167 }, // Ibu Kota Kab (Kayu Aro)
+    { label: "Solok Selatan (Padang Aro)", lat: -1.5500, lon: 101.2167 },
+    
+    // --- KABUPATEN (Lintas Timur) ---
+    { label: "Sijunjung (Muaro Sijunjung)", lat: -0.6833, lon: 100.9500 },
+    { label: "Dharmasraya (Pulau Punjung)", lat: -0.9608, lon: 101.5019 },
+
+    // --- KABUPATEN (Kepulauan) ---
+    { label: "Kepulauan Mentawai (Tuapejat)", lat: -2.0333, lon: 99.5833 } // Pulau Sipora
+],
+"Riau": [
+    // --- KOTA (Pusat Ekonomi) ---
+    { label: "Pekanbaru", lat: 0.5071, lon: 101.4478 },
+    { label: "Dumai", lat: 1.6666, lon: 101.4453 }, // Kota Pelabuhan/Industri
+
+    // --- KABUPATEN (Daratan Utama) ---
+    { label: "Kampar (Bangkinang)", lat: 0.3333, lon: 101.0333 },
+    { label: "Pelalawan (Pangkalan Kerinci)", lat: 0.4000, lon: 101.8500 },
+    { label: "Siak (Siak Sri Indrapura)", lat: 0.7964, lon: 102.0469 }, // Area Istana Siak
+    { label: "Rokan Hulu (Pasir Pengaraian)", lat: 0.8500, lon: 100.3167 },
+    { label: "Rokan Hilir (Bagansiapiapi)", lat: 2.1500, lon: 100.8000 },
+
+    // --- KABUPATEN (Indragiri & Kuantan) ---
+    { label: "Indragiri Hulu (Rengat)", lat: -0.3833, lon: 102.5500 },
+    { label: "Indragiri Hilir (Tembilahan)", lat: -0.3222, lon: 103.1608 },
+    { label: "Kuantan Singingi (Teluk Kuantan)", lat: -0.5333, lon: 101.5667 }, // Area Pacu Jalur
+
+    // --- KABUPATEN (Pesisir & Kepulauan) ---
+    { label: "Bengkalis", lat: 1.4833, lon: 102.1000 },
+    { label: "Kepulauan Meranti (Selatpanjang)", lat: 1.0167, lon: 102.7000 }
+],
+"Jambi": [
+    // --- KOTA (Pusat Administrasi & Ekonomi) ---
+    { label: "Jambi (Kota)", lat: -1.6099, lon: 103.6073 },
+    { label: "Sungai Penuh (Kota)", lat: -2.0588, lon: 101.4006 }, // Area Kerinci/Dataran Tinggi
+
+    // --- KABUPATEN (Wilayah Timur & Tengah) ---
+    { label: "Muaro Jambi (Sengeti)", lat: -1.4000, lon: 103.5500 },
+    { label: "Batanghari (Muara Bulian)", lat: -1.7167, lon: 103.2667 },
+    { label: "Tanjung Jabung Barat (Kuala Tungkal)", lat: -0.8167, lon: 103.4667 }, // Pesisir
+    { label: "Tanjung Jabung Timur (Muara Sabak)", lat: -1.1333, lon: 103.8667 }, // Pesisir
+
+    // --- KABUPATEN (Wilayah Barat/Lintas Sumatera) ---
+    { label: "Sarolangun", lat: -2.3000, lon: 102.6500 },
+    { label: "Merangin (Bangko)", lat: -2.1667, lon: 102.2167 },
+    { label: "Tebo (Muara Tebo)", lat: -1.4833, lon: 102.3333 },
+    { label: "Bungo (Muara Bungo)", lat: -1.4833, lon: 101.9667 },
+    
+    // --- KABUPATEN (Pegunungan) ---
+    { label: "Kerinci (Siulak)", lat: -2.0000, lon: 101.3000 } // Area Gunung Kerinci
+],
+"Kepulauan Riau": [
+    // --- KOTA (Pusat Ekonomi & Pemerintahan) ---
+    { label: "Tanjung Pinang", lat: 0.9167, lon: 104.4500 },    // Ibukota Provinsi
+    { label: "Batam", lat: 1.0456, lon: 104.0305 },             // Pusat Industri/Bisnis
+
+    // --- KABUPATEN (Kepulauan Utama) ---
+    { label: "Bintan (Bandar Seri Bentan)", lat: 1.1357, lon: 104.4752 },
+    { label: "Karimun (Tanjung Balai)", lat: 1.0621, lon: 103.4282 },
+    { label: "Lingga (Daik)", lat: -0.2333, lon: 104.6167 },
+
+    // --- KABUPATEN (Pulau Terluar/Laut Natuna Utara) ---
+    { label: "Natuna (Ranai)", lat: 3.9427, lon: 108.3862 },        // Ujung Utara
+    { label: "Kepulauan Anambas (Tarempa)", lat: 3.2167, lon: 106.2167 } // Laut Lepas
+],
+"Sumatera Selatan": [
+    // --- KOTA (Pusat Ekonomi & Wisata) ---
+    { label: "Palembang", lat: -2.9761, lon: 104.7754 },        // Ibu Kota Provinsi
+    { label: "Lubuklinggau", lat: -3.2960, lon: 102.8610 },     // Kota Transit Lintas Tengah
+    { label: "Prabumulih", lat: -3.4345, lon: 104.2323 },       // Kota Nanas/Minyak
+    { label: "Pagar Alam", lat: -4.0177, lon: 103.2736 },       // Kota Wisata Gunung Dempo
+
+    // --- KABUPATEN (Wilayah Timur/Pesisir) ---
+    { label: "Banyuasin (Pangkalan Balai)", lat: -2.8833, lon: 104.3833 },
+    { label: "Ogan Komering Ilir (Kayu Agung)", lat: -3.3975, lon: 104.8308 },
+    { label: "Ogan Ilir (Indralaya)", lat: -3.2167, lon: 104.6500 },
+
+    // --- KABUPATEN (Wilayah Tengah & Barat) ---
+    { label: "Musi Banyuasin (Sekayu)", lat: -2.8944, lon: 103.8433 },
+    { label: "Muara Enim", lat: -3.6547, lon: 103.7761 },
+    { label: "Lahat", lat: -3.7936, lon: 103.5439 },
+    { label: "Penukal Abab Lematang Ilir (Talang Ubi)", lat: -3.2833, lon: 103.8500 }, // PALI
+
+    // --- KABUPATEN (Wilayah Ulu/Selatan) ---
+    { label: "Ogan Komering Ulu (Baturaja)", lat: -4.1333, lon: 104.1667 },
+    { label: "OKU Timur (Martapura)", lat: -4.3167, lon: 104.3500 },
+    { label: "OKU Selatan (Muaradua)", lat: -4.5167, lon: 104.0667 }, // Danau Ranau
+
+    // --- KABUPATEN (Lintas Bengkulu) ---
+    { label: "Empat Lawang (Tebing Tinggi)", lat: -3.5667, lon: 103.0667 },
+    { label: "Musi Rawas (Muara Beliti)", lat: -3.2431, lon: 103.0447 },
+    { label: "Musi Rawas Utara (Rupit)", lat: -2.8167, lon: 102.8667 }
+],
+"Bangka Belitung": [
+    // --- KOTA (Ibukota Provinsi) ---
+    { label: "Pangkal Pinang", lat: -2.1312, lon: 106.1161 },
+
+    // --- PULAU BANGKA ---
+    { label: "Bangka (Sungailiat)", lat: -1.8589, lon: 106.1093 },      // Pantai Tikus Emas Area
+    { label: "Bangka Barat (Muntok)", lat: -2.0678, lon: 105.1633 },    // Pelabuhan Ferry
+    { label: "Bangka Tengah (Koba)", lat: -2.4912, lon: 106.3942 },
+    { label: "Bangka Selatan (Toboali)", lat: -3.0164, lon: 106.4526 }, // Ujung Selatan Bangka
+
+    // --- PULAU BELITUNG ---
+    { label: "Belitung (Tanjung Pandan)", lat: -2.7408, lon: 107.6406 }, // Area Laskar Pelangi
+    { label: "Belitung Timur (Manggar)", lat: -2.8847, lon: 108.2681 }   // Kota 1001 Warung Kopi
+],
+"Bengkulu": [
+    // --- KOTA (Ibukota Provinsi) ---
+    { label: "Bengkulu (Kota)", lat: -3.7928, lon: 102.2608 }, // Pantai Panjang Area
+
+    // --- KABUPATEN (Pesisir & Selatan) ---
+    { label: "Bengkulu Selatan (Manna)", lat: -4.4750, lon: 102.9077 },
+    { label: "Kaur (Bintuhan)", lat: -4.7500, lon: 103.3500 },
+    { label: "Seluma (Tais)", lat: -4.0833, lon: 102.6667 },
+    
+    // --- KABUPATEN (Utara & Perbatasan Sumbar) ---
+    { label: "Mukomuko", lat: -2.5744, lon: 101.1189 },
+    { label: "Bengkulu Utara (Arga Makmur)", lat: -3.4300, lon: 102.1867 },
+    { label: "Bengkulu Tengah (Karang Tinggi)", lat: -3.7333, lon: 102.3833 },
+
+    // --- KABUPATEN (Dataran Tinggi/Pegunungan) ---
+    { label: "Rejang Lebong (Curup)", lat: -3.4717, lon: 102.5264 }, // Daerah Dingin
+    { label: "Kepahiang", lat: -3.6400, lon: 102.5647 },             // Lintas Liku 9
+    { label: "Lebong (Muara Aman)", lat: -3.2056, lon: 102.3533 }    // Area Tambang Emas
+],
+"Lampung": [
+    // --- KOTA (Pusat Ekonomi & Pemerintahan) ---
+    { label: "Bandar Lampung", lat: -5.4292, lon: 105.2611 },   // Ibukota Provinsi
+    { label: "Metro", lat: -5.1136, lon: 105.3069 },            // Kota Pendidikan
+
+    // --- KABUPATEN (Wilayah Selatan & Pesisir) ---
+    { label: "Lampung Selatan (Kalianda)", lat: -5.7333, lon: 105.5833 }, // Bakauheni Area
+    { label: "Pesawaran (Gedong Tataan)", lat: -5.4167, lon: 105.0667 },
+    { label: "Pringsewu", lat: -5.3667, lon: 104.9833 },
+    { label: "Tanggamus (Kota Agung)", lat: -5.5000, lon: 104.6167 },
+
+    // --- KABUPATEN (Wilayah Tengah & Timur) ---
+    { label: "Lampung Tengah (Gunung Sugih)", lat: -4.9500, lon: 105.2167 },
+    { label: "Lampung Timur (Sukadana)", lat: -5.0667, lon: 105.5333 }, // Way Kambas Area
+    { label: "Lampung Utara (Kotabumi)", lat: -4.8167, lon: 104.8833 },
+
+    // --- KABUPATEN (Wilayah Barat/Lintas Barat) ---
+    { label: "Lampung Barat (Liwa)", lat: -5.0333, lon: 104.0500 }, // Daerah Dingin
+    { label: "Pesisir Barat (Krui)", lat: -5.1950, lon: 103.9361 }, // Surfing Spot
+
+    // --- KABUPATEN (Wilayah Utara/Lintas Timur) ---
+    { label: "Way Kanan (Blambangan Umpu)", lat: -4.5000, lon: 104.5333 },
+    { label: "Tulang Bawang (Menggala)", lat: -4.4667, lon: 105.2500 },
+    { label: "Tulang Bawang Barat (Panaragan)", lat: -4.4333, lon: 105.0500 },
+    { label: "Mesuji", lat: -4.0500, lon: 105.2667 }
+],
+"Nusa Tenggara Barat": [
+    // --- PULAU LOMBOK ---
+    { label: "Mataram (Kota)", lat: -8.5833, lon: 116.1167 },   // Ibukota Provinsi
+    { label: "Lombok Barat (Gerung)", lat: -8.6833, lon: 116.1333 }, // Senggigi Area
+    { label: "Lombok Tengah (Praya)", lat: -8.7000, lon: 116.2667 }, // Mandalika/Sirkuit Area
+    { label: "Lombok Timur (Selong)", lat: -8.6500, lon: 116.5333 }, // Sembalun/Rinjani Base
+    { label: "Lombok Utara (Tanjung)", lat: -8.3500, lon: 116.1500 }, // Akses 3 Gili
+
+    // --- PULAU SUMBAWA ---
+    { label: "Sumbawa (Sumbawa Besar)", lat: -8.5000, lon: 117.4333 },
+    { label: "Sumbawa Barat (Taliwang)", lat: -8.7500, lon: 116.8500 }, // Area Tambang/Pantai
+    { label: "Dompu", lat: -8.5333, lon: 118.4667 },                 // Area Gunung Tambora
+    { label: "Bima (Kota)", lat: -8.4667, lon: 118.7167 },           // Pusat Kota Bima
+    { label: "Bima (Woha)", lat: -8.6500, lon: 118.6833 }            // Ibu Kota Kabupaten
+],
+"Nusa Tenggara Timur": [
+    // --- PULAU TIMOR (Pusat Pemerintahan) ---
+    { label: "Kupang (Kota)", lat: -10.1772, lon: 123.6070 },     // Ibukota Provinsi
+    { label: "Kupang (Oelamasi)", lat: -10.0833, lon: 123.9333 }, // Ibukota Kab
+    { label: "Timor Tengah Selatan (Soe)", lat: -9.8608, lon: 124.2764 }, // Kota Dingin
+    { label: "Timor Tengah Utara (Kefamenanu)", lat: -9.4478, lon: 124.4789 },
+    { label: "Belu (Atambua)", lat: -9.1067, lon: 124.8936 },     // Perbatasan Timor Leste
+    { label: "Malaka (Betun)", lat: -9.5667, lon: 124.9167 },
+
+    // --- PULAU FLORES (Pariwisata Utama) ---
+    { label: "Manggarai Barat (Labuan Bajo)", lat: -8.4964, lon: 119.8877 }, // Komodo Area
+    { label: "Manggarai (Ruteng)", lat: -8.6136, lon: 120.4722 },
+    { label: "Manggarai Timur (Borong)", lat: -8.7944, lon: 120.6139 },
+    { label: "Ngada (Bajawa)", lat: -8.7936, lon: 120.9633 },     // Kampung Adat Bena
+    { label: "Nagekeo (Mbay)", lat: -8.5714, lon: 121.2883 },
+    { label: "Ende", lat: -8.8433, lon: 121.6622 },               // Danau Kelimutu Area
+    { label: "Sikka (Maumere)", lat: -8.6194, lon: 122.2111 },
+    { label: "Flores Timur (Larantuka)", lat: -8.3450, lon: 122.9833 }, // Ujung Timur Flores
+
+    // --- PULAU SUMBA ---
+    { label: "Sumba Timur (Waingapu)", lat: -9.6522, lon: 120.2636 },
+    { label: "Sumba Barat (Waikabubak)", lat: -9.6433, lon: 119.4233 },
+    { label: "Sumba Barat Daya (Tambolaka)", lat: -9.4067, lon: 119.1467 },
+    { label: "Sumba Tengah (Waibakul)", lat: -9.6333, lon: 119.6667 },
+
+    // --- KEPULAUAN LAINNYA ---
+    { label: "Alor (Kalabahi)", lat: -8.2197, lon: 124.5167 },    // Pulau Alor
+    { label: "Lembata (Lewoleba)", lat: -8.3619, lon: 123.4181 }, // Pulau Lembata
+    { label: "Rote Ndao (Ba'a)", lat: -10.7333, lon: 123.0500 },  // Pulau Rote (Terselatan)
+    { label: "Sabu Raijua (Seba)", lat: -10.5000, lon: 121.8333 } // Pulau Sabu
+],
+"Kalimantan Barat": [
+    // --- KOTA (Otonom) ---
+    { label: "Pontianak", lat: -0.0263, lon: 109.3425 },       // Kota Khatulistiwa
+    { label: "Singkawang", lat: 0.9068, lon: 108.9926 },       // Kota Wisata
+
+    // --- KABUPATEN (Pesisir & Sambas) ---
+    { label: "Kubu Raya (Sungai Raya)", lat: -0.1667, lon: 109.4167 }, // Area Bandara Supadio
+    { label: "Mempawah", lat: 0.3833, lon: 108.9500 },
+    { label: "Sambas", lat: 1.3667, lon: 109.3000 },           // Wilayah Utara
+    { label: "Bengkayang", lat: 0.8167, lon: 109.4833 },       // Perbatasan Jagoi Babang
+    { label: "Kayong Utara (Sukadana)", lat: -1.1667, lon: 109.9667 },
+    { label: "Ketapang", lat: -1.8333, lon: 109.9667 },        // Wilayah Selatan Luas
+
+    // --- KABUPATEN (Hulu/Pedalaman) ---
+    { label: "Landak (Ngabang)", lat: 0.4000, lon: 109.9500 },
+    { label: "Sanggau (Kapuas)", lat: 0.1167, lon: 110.5833 }, // Perbatasan Entikong
+    { label: "Sekadau", lat: 0.0333, lon: 110.9500 },
+    { label: "Sintang", lat: 0.0833, lon: 111.5000 },          // Area Bukit Kelam
+    { label: "Melawi (Nanga Pinoh)", lat: -0.3333, lon: 111.7000 },
+    { label: "Kapuas Hulu (Putussibau)", lat: 0.8333, lon: 112.9333 } // Jantung Borneo
+],
+"Kalimantan Selatan": [
+    // --- KOTA (Pusat Pemerintahan & Ekonomi) ---
+    { label: "Banjarmasin", lat: -3.3194, lon: 114.5908 },         // Kota Seribu Sungai
+    { label: "Banjarbaru", lat: -3.4404, lon: 114.8294 },           // Ibu Kota Provinsi Baru
+
+    // --- KABUPATEN (Banjarbakula & Pesisir) ---
+    { label: "Banjar (Martapura)", lat: -3.4167, lon: 114.8500 },   // Kota Intan
+    { label: "Tanah Laut (Pelaihari)", lat: -3.8000, lon: 114.7833 },
+    { label: "Barito Kuala (Marabahan)", lat: -2.9833, lon: 114.7667 },
+    { label: "Tanah Bumbu (Batulicin)", lat: -3.4500, lon: 115.9500 },
+    { label: "Kotabaru", lat: -3.2333, lon: 116.2000 },             // Pulau Laut
+
+    // --- KABUPATEN (Banua Anam/Hulu Sungai) ---
+    { label: "Tapin (Rantau)", lat: -2.9333, lon: 115.1500 },
+    { label: "Hulu Sungai Selatan (Kandangan)", lat: -2.7167, lon: 115.2833 }, // Kota Dodol
+    { label: "Hulu Sungai Tengah (Barabai)", lat: -2.5833, lon: 115.3833 },
+    { label: "Hulu Sungai Utara (Amuntai)", lat: -2.4167, lon: 115.2500 },
+    { label: "Balangan (Paringin)", lat: -2.3500, lon: 115.4667 },
+    { label: "Tabalong (Tanjung)", lat: -2.1833, lon: 115.3833 }    // Perbatasan Kaltim/IKN
+],
+"Kalimantan Tengah": [
+    // --- KOTA (Ibukota Provinsi) ---
+    { label: "Palangka Raya", lat: -2.2106, lon: 113.9137 },    // Kota Cantik
+
+    // --- KABUPATEN (Wilayah Kotawaringin & Seruyan) ---
+    { label: "Kotawaringin Timur (Sampit)", lat: -2.5333, lon: 112.9500 }, // Kota Mentaya
+    { label: "Kotawaringin Barat (Pangkalan Bun)", lat: -2.6833, lon: 111.6167 }, // Area Tanjung Puting
+    { label: "Seruyan (Kuala Pembuang)", lat: -3.3000, lon: 112.5333 },
+    { label: "Lamandau (Nanga Bulik)", lat: -1.8333, lon: 111.2833 },
+    { label: "Sukamara", lat: -2.6333, lon: 111.2333 },
+
+    // --- KABUPATEN (Wilayah Barito & Murung Raya) ---
+    { label: "Barito Selatan (Buntok)", lat: -1.7333, lon: 114.8500 },
+    { label: "Barito Timur (Tamiang Layang)", lat: -2.0167, lon: 115.1333 },
+    { label: "Barito Utara (Muara Teweh)", lat: -0.9333, lon: 114.8833 },
+    { label: "Murung Raya (Puruk Cahu)", lat: -0.6333, lon: 114.5667 }, // Paling Utara/Hulu
+
+    // --- KABUPATEN (Wilayah Tengah & Pesisir) ---
+    { label: "Kapuas (Kuala Kapuas)", lat: -3.0094, lon: 114.3875 },
+    { label: "Pulang Pisau", lat: -2.7167, lon: 114.2500 },
+    { label: "Gunung Mas (Kuala Kurun)", lat: -1.1667, lon: 113.8667 },
+    { label: "Katingan (Kasongan)", lat: -1.9000, lon: 113.3833 }
+],
+"Kalimantan Timur": [
+    // --- KOTA (Pusat Ekonomi & Pemerintahan) ---
+    { label: "Samarinda", lat: -0.5022, lon: 117.1536 },        // Ibukota Provinsi
+    { label: "Balikpapan", lat: -1.2379, lon: 116.8529 },       // Kota Minyak/Pintu Gerbang
+    { label: "Bontang", lat: 0.1333, lon: 117.5000 },           // Kota Industri Gas/Pupuk
+    
+    // --- KHUSUS (Ibu Kota Negara Baru) ---
+    { label: "Ibu Kota Nusantara (IKN)", lat: -0.9733, lon: 116.7077 }, // Titik Nol/Sepaku
+
+    // --- KABUPATEN (Kutai & Pedalaman) ---
+    { label: "Kutai Kartanegara (Tenggarong)", lat: -0.4167, lon: 116.9833 }, // Kota Raja
+    { label: "Kutai Timur (Sangatta)", lat: 0.4833, lon: 117.5500 },          // Tambang Batubara
+    { label: "Kutai Barat (Sendawar)", lat: -0.4500, lon: 115.7000 },
+    { label: "Mahakam Ulu (Ujoh Bilang)", lat: 0.8667, lon: 115.3500 },       // Hulu Mahakam
+
+    // --- KABUPATEN (Pesisir Selatan & Utara) ---
+    { label: "Paser (Tanah Grogot)", lat: -1.9167, lon: 116.2167 },
+    { label: "Penajam Paser Utara (Penajam)", lat: -1.3000, lon: 116.7167 },
+    { label: "Berau (Tanjung Redeb)", lat: 2.1500, lon: 117.4833 }            // Pintu Masuk Maratua/Derawan
+],
+"Kalimantan Utara": [
+    // --- KOTA (Pusat Ekonomi & Transit) ---
+    { label: "Tarakan", lat: 3.3273, lon: 117.5929 },           // Pulau Tarakan
+
+    // --- KABUPATEN (Ibukota Provinsi & Perbatasan) ---
+    { label: "Bulungan (Tanjung Selor)", lat: 2.8436, lon: 117.3644 }, // Ibukota Provinsi
+    { label: "Nunukan", lat: 4.1333, lon: 117.6500 },           // Perbatasan Malaysia (Tawau)
+    { label: "Malinau", lat: 3.5833, lon: 116.6333 },           // Wilayah Pedalaman Luas
+    { label: "Tana Tidung (Tideng Pale)", lat: 3.5500, lon: 117.2333 } // Kabupaten Termuda
+],
+"Sulawesi Selatan": [
+    // --- KOTA (Pusat Ekonomi & Jasa) ---
+    { label: "Makassar", lat: -5.1476, lon: 119.4327 },          // Ibu Kota Provinsi
+    { label: "Parepare", lat: -4.0167, lon: 119.6167 },          // Kota Bandar Madani
+    { label: "Palopo", lat: -3.0000, lon: 120.2000 },            // Pusat Luwu Raya
+
+    // --- KABUPATEN (Maminasata & Selatan) ---
+    { label: "Gowa (Sungguminasa)", lat: -5.2000, lon: 119.4500 }, // Tetangga Makassar
+    { label: "Maros (Turikale)", lat: -5.0000, lon: 119.5667 },   // Area Bandara/Buntimurung
+    { label: "Takalar", lat: -5.4167, lon: 119.4333 },
+    { label: "Jeneponto", lat: -5.6333, lon: 119.7333 },
+    { label: "Bantaeng", lat: -5.5500, lon: 119.9500 },
+    { label: "Bulukumba", lat: -5.5667, lon: 120.2000 },          // Pembuat Kapal Phinisi/Bira
+    { label: "Kepulauan Selayar (Benteng)", lat: -6.1200, lon: 120.4600 }, // Terpisah Laut
+
+    // --- KABUPATEN (Bosowasi & Danau Tempe) ---
+    { label: "Bone (Watampone)", lat: -4.5386, lon: 120.3275 },
+    { label: "Soppeng (Watansoppeng)", lat: -4.3500, lon: 119.9333 }, // Kota Kalong
+    { label: "Wajo (Sengkang)", lat: -4.1333, lon: 120.0333 },     // Kota Sutera
+    { label: "Sinjai", lat: -5.1333, lon: 120.2500 },
+
+    // --- KABUPATEN (Ajatappareng & Pesisir Barat) ---
+    { label: "Barru", lat: -4.4167, lon: 119.6167 },
+    { label: "Pangkajene dan Kepulauan (Pangkep)", lat: -4.8333, lon: 119.5500 },
+    { label: "Sidenreng Rappang (Sidrap)", lat: -3.9333, lon: 119.8000 }, // Lumbung Beras
+    { label: "Pinrang", lat: -3.7833, lon: 119.6500 },
+
+    // --- KABUPATEN (Toraja/Dataran Tinggi) ---
+    { label: "Enrekang", lat: -3.5667, lon: 119.7667 },
+    { label: "Tana Toraja (Makale)", lat: -3.1000, lon: 119.8500 },     // Wisata Budaya
+    { label: "Toraja Utara (Rantepao)", lat: -2.9700, lon: 119.8978 },  // Negeri di Atas Awan
+
+    // --- KABUPATEN (Luwu Raya) ---
+    { label: "Luwu (Belopa)", lat: -3.3500, lon: 120.3500 },
+    { label: "Luwu Utara (Masamba)", lat: -2.5667, lon: 120.3167 },
+    { label: "Luwu Timur (Malili)", lat: -2.6500, lon: 121.0833 }       // Area Sorowako/Danau Matano
+],
+"Sulawesi Tengah": [
+    // --- KOTA (Ibukota Provinsi) ---
+    { label: "Palu", lat: -0.8917, lon: 119.8707 },             // Lembah Palu
+
+    // --- KABUPATEN (Wilayah Timur/Banggai Bersaudara) ---
+    { label: "Banggai (Luwuk)", lat: -0.9516, lon: 122.7875 },  // Kota Air/Pusat Timur
+    { label: "Banggai Kepulauan (Salakan)", lat: -1.3500, lon: 123.1667 },
+    { label: "Banggai Laut (Banggai)", lat: -1.6167, lon: 123.5000 },
+
+    // --- KABUPATEN (Wilayah Teluk Tomini & Poso) ---
+    { label: "Poso", lat: -1.3959, lon: 120.7524 },             // Danau Poso Area
+    { label: "Tojo Una-Una (Ampana)", lat: -0.8667, lon: 121.5833 }, // Gerbang Togean
+    { label: "Parigi Moutong (Parigi)", lat: -0.8167, lon: 120.1833 }, // Garis Pantai Terpanjang
+
+    // --- KABUPATEN (Wilayah Morowali/Industri Nikel) ---
+    { label: "Morowali (Bungku)", lat: -2.5333, lon: 121.9333 },
+    { label: "Morowali Utara (Kolonodale)", lat: -1.9667, lon: 121.3333 },
+
+    // --- KABUPATEN (Wilayah Barat & Utara) ---
+    { label: "Donggala (Banawa)", lat: -0.6833, lon: 119.7333 }, // Pelabuhan Tua
+    { label: "Sigi (Sigi Biromaru)", lat: -1.1000, lon: 119.9500 }, // Selatan Palu
+    { label: "Tolitoli", lat: 1.0333, lon: 120.8167 },           // Kota Cengkeh
+    { label: "Buol", lat: 1.1667, lon: 121.3333 }                // Pesisir Utara
+],
+"Gorontalo": [
+    // --- KOTA (Ibukota Provinsi) ---
+    { label: "Gorontalo (Kota)", lat: 0.5412, lon: 123.0595 },  // Kota Serambi Madinah
+
+    // --- KABUPATEN (Wilayah Limboto & Sekitar) ---
+    { label: "Gorontalo (Limboto)", lat: 0.6333, lon: 122.9833 }, // Area Menara Keagungan
+    { label: "Bone Bolango (Suwawa)", lat: 0.5500, lon: 123.2000 }, // Taman Nasional Bogani Nani Wartabone
+
+    // --- KABUPATEN (Pesisir Selatan/Teluk Tomini) ---
+    { label: "Boalemo (Tilamuta)", lat: 0.5333, lon: 122.3333 }, // Pantai Bolihutuo
+    { label: "Pohuwato (Marisa)", lat: 0.4500, lon: 121.9500 }, // Paling Barat/Desa Terapung
+
+    // --- KABUPATEN (Pesisir Utara/Laut Sulawesi) ---
+    { label: "Gorontalo Utara (Kwandang)", lat: 0.8333, lon: 122.9000 } // Benteng Otanaha Arah Utara
+],
+"Sulawesi Tenggara": [
+    // --- KOTA (Pusat Ekonomi & Jasa) ---
+    { label: "Kendari", lat: -3.9985, lon: 122.5126 },          // Ibu Kota Provinsi
+    { label: "Baubau", lat: -5.4735, lon: 122.6105 },           // Pusat Pulau Buton
+
+    // --- KABUPATEN (Daratan Utama/Semenanjung) ---
+    { label: "Konawe (Unaaha)", lat: -3.8667, lon: 122.0500 },
+    { label: "Konawe Selatan (Andoolo)", lat: -4.3500, lon: 122.2667 }, // Area Bandara Haluoleo
+    { label: "Konawe Utara (Wanggudu)", lat: -3.5333, lon: 122.2000 },
+    { label: "Kolaka", lat: -4.0500, lon: 121.6000 },           // Kota Cokelat
+    { label: "Kolaka Timur (Tirawuta)", lat: -4.0167, lon: 121.9333 },
+    { label: "Kolaka Utara (Lasusua)", lat: -3.5333, lon: 121.0500 },
+    { label: "Bombana (Rumbia)", lat: -4.7333, lon: 121.8167 },
+
+    // --- KABUPATEN (Kepulauan Buton & Muna) ---
+    { label: "Buton (Pasarwajo)", lat: -5.5167, lon: 122.8333 }, // Penghasil Aspal
+    { label: "Buton Selatan (Batauga)", lat: -5.6000, lon: 122.6500 },
+    { label: "Buton Tengah (Labungkari)", lat: -5.3667, lon: 122.4000 },
+    { label: "Buton Utara (Buranga)", lat: -4.8333, lon: 122.9500 },
+    { label: "Muna (Raha)", lat: -4.8333, lon: 122.7167 },
+    { label: "Muna Barat (Laworo)", lat: -4.8833, lon: 122.5000 },
+
+    // --- KABUPATEN (Kepulauan Wisata) ---
+    { label: "Wakatobi (Wangi-Wangi)", lat: -5.3106, lon: 123.5888 }, // Surga Bawah Laut
+    { label: "Konawe Kepulauan (Langara)", lat: -4.0667, lon: 123.0833 } // Pulau Wawonii
+],
+"Sulawesi Barat": [
+    // --- IBUKOTA PROVINSI ---
+    { label: "Mamuju (Kota)", lat: -2.6748, lon: 118.8885 },    // Pusat Pemerintahan
+
+    // --- KABUPATEN (Pesisir & Selatan) ---
+    { label: "Majene", lat: -3.5408, lon: 118.9705 },           // Kota Pendidikan/Pesisir
+    { label: "Polewali Mandar (Polewali)", lat: -3.4230, lon: 119.3432 }, // Terpadat/Perbatasan Sulsel
+
+    // --- KABUPATEN (Dataran Tinggi/Pegunungan) ---
+    { label: "Mamasa", lat: -2.9388, lon: 119.3752 },           // Wilayah Dingin/Budaya
+
+    // --- KABUPATEN (Utara & Perkebunan) ---
+    { label: "Mamuju Tengah (Tobadak)", lat: -2.0667, lon: 119.3167 }, // Pusat Sawit
+    { label: "Pasangkayu", lat: -1.1697, lon: 119.3661 }        // Paling Utara/Perbatasan Sulteng
+],
+"Maluku": [
+    // --- PULAU AMBON & LEASE (Pusat Pemerintahan) ---
+    { label: "Ambon (Kota)", lat: -3.6954, lon: 128.1814 },     // Ibukota Provinsi/Pusat Musik
+
+    // --- PULAU SERAM (Nusa Ina) ---
+    { label: "Maluku Tengah (Masohi)", lat: -3.2986, lon: 128.9593 }, // Kota Tua/Pusat Seram
+    { label: "Seram Bagian Barat (Piru)", lat: -3.0667, lon: 128.1833 },
+    { label: "Seram Bagian Timur (Bula)", lat: -3.1000, lon: 130.4833 }, // Kota Minyak
+
+    // --- PULAU BURU ---
+    { label: "Buru (Namlea)", lat: -3.2667, lon: 127.1000 },    // Penghasil Minyak Kayu Putih
+    { label: "Buru Selatan (Namrole)", lat: -3.8667, lon: 126.7000 },
+
+    // --- KEPULAUAN KEI (Nuhu Evav) ---
+    { label: "Tual (Kota)", lat: -5.6267, lon: 132.7500 },      // Kota Kepulauan
+    { label: "Maluku Tenggara (Langgur)", lat: -5.6593, lon: 132.7333 }, // Pantai Pasir Panjang
+
+    // --- KEPULAUAN TENGGARA JAUH ---
+    { label: "Kepulauan Tanimbar (Saumlaki)", lat: -7.9833, lon: 131.3000 }, // Dulu Maluku Tenggara Barat
+    { label: "Kepulauan Aru (Dobo)", lat: -5.7667, lon: 134.2167 }, // Penghasil Mutiara
+
+    // --- KEPULAUAN BARAT DAYA (Perbatasan Timor/Australia) ---
+    { label: "Maluku Barat Daya (Tiakur)", lat: -8.2167, lon: 127.9667 } // Pulau Moa
+],
+"Maluku Utara": [
+    // --- KOTA (Pusat Sejarah & Ekonomi) ---
+    { label: "Ternate (Kota)", lat: 0.7906, lon: 127.3842 },    // Pusat Ekonomi Utama
+    { label: "Tidore Kepulauan (Soasio)", lat: 0.6961, lon: 127.4089 }, // Wilayah Kesultanan
+    { label: "Sofifi (Ibukota Provinsi)", lat: 0.7258, lon: 127.5678 }, // Pusat Pemerintahan
+
+    // --- PULAU HALMAHERA (Daratan Utama) ---
+    { label: "Halmahera Barat (Jailolo)", lat: 1.0500, lon: 127.4667 }, // Teluk Jailolo
+    { label: "Halmahera Utara (Tobelo)", lat: 1.7333, lon: 128.0000 },  // Pintu Masuk Morotai
+    { label: "Halmahera Timur (Maba)", lat: 0.6833, lon: 128.3000 },
+    { label: "Halmahera Tengah (Weda)", lat: 0.4667, lon: 127.9167 },  // Kawasan Industri Nikel
+    { label: "Halmahera Selatan (Labuha)", lat: -0.6333, lon: 127.4833 }, // Pulau Bacan
+
+    // --- KEPULAUAN LAINNYA ---
+    { label: "Pulau Morotai (Daruba)", lat: 2.3000, lon: 128.2833 },    // Mutiara di Bibir Pasifik
+    { label: "Kepulauan Sula (Sanana)", lat: -2.0500, lon: 125.9833 },  // Dekat Sulawesi
+    { label: "Pulau Taliabu (Bobong)", lat: -1.9333, lon: 124.3667 }    // Kabupaten Paling Barat
+],
+"Papua Barat": [
+    // --- IBUKOTA PROVINSI ---
+    { label: "Manokwari", lat: -0.8615, lon: 134.0620 },        // Kota Injil
+
+    // --- KABUPATEN (Semenanjung Bomberai) ---
+    { label: "Fakfak", lat: -2.9247, lon: 132.2958 },           // Kota Pala (Satu Tungku Tiga Batu)
+    { label: "Kaimana", lat: -3.6559, lon: 133.7661 },          // Kota Senja Indah
+
+    // --- KABUPATEN (Teluk & Pegunungan) ---
+    { label: "Teluk Bintuni", lat: -2.1225, lon: 133.5414 },    // Kawasan Gas Tangguh
+    { label: "Teluk Wondama (Rasiei)", lat: -2.6936, lon: 134.5028 }, // Taman Nasional Teluk Cenderawasih
+    { label: "Manokwari Selatan (Ransiki)", lat: -1.5000, lon: 134.1667 },
+    { label: "Pegunungan Arfak (Anggi)", lat: -1.1000, lon: 133.9333 } // Wilayah Danau Anggi (Sangat Dingin)
+],
+"Papua Barat Daya": [
+    // --- KOTA (Pusat Ekonomi & Gerbang Papua) ---
+    { label: "Sorong (Kota)", lat: -0.8756, lon: 131.2561 },    // Kota Minyak
+
+    // --- KABUPATEN (Wisata & Pedalaman) ---
+    { label: "Sorong (Aimas)", lat: -0.9383, lon: 131.2980 },   // Ibukota Kabupaten
+    { label: "Raja Ampat (Waisai)", lat: -0.4356, lon: 130.8228 }, // Surga Wisata Dunia
+    { label: "Sorong Selatan (Teminabuan)", lat: -1.4500, lon: 132.0000 }, // Kota Udang
+    { label: "Maybrat (Kumurkek)", lat: -1.3333, lon: 132.4333 },
+    { label: "Tambrauw (Fef)", lat: -0.7667, lon: 132.4333 }    // Kabupaten Konservasi
+],
+"Papua": [
+    // --- KOTA (Pusat Pemerintahan) ---
+    { label: "Jayapura (Kota)", lat: -2.5387, lon: 140.7037 },  // Ibukota Provinsi
+    { label: "Jayapura (Sentani)", lat: -2.5760, lon: 140.5055 }, // Area Bandara Utama
+    { label: "Keerom (Waris)", lat: -3.3167, lon: 140.6167 },   // Perbatasan PNG
+    { label: "Sarmi", lat: -1.8583, lon: 138.7500 },            // Kota Ombak
+
+    // --- KEPULAUAN (Teluk Cenderawasih) ---
+    { label: "Biak Numfor (Biak)", lat: -1.1750, lon: 136.0833 }, // Kota Karang Panas
+    { label: "Supiori (Sorendiweri)", lat: -0.7000, lon: 135.5833 },
+    { label: "Kepulauan Yapen (Serui)", lat: -1.8667, lon: 136.2333 }, // Kota Kembang
+    { label: "Waropen (Botawa)", lat: -2.2333, lon: 136.5667 },
+
+    // --- PEDALAMAN UTARA ---
+    { label: "Mamberamo Raya (Burmeso)", lat: -2.2167, lon: 137.8333 } // Sungai Besar
+],
+"Papua Tengah": [
+    // --- PESISIR (Ibukota & Tambang) ---
+    { label: "Nabire", lat: -3.3667, lon: 135.4833 },           // Ibukota Provinsi Baru
+    { label: "Mimika (Timika)", lat: -4.5469, lon: 136.8839 },  // Area Freeport/Kuala Kencana
+
+    // --- PEGUNUNGAN TENGAH (Sangat Dingin) ---
+    { label: "Paniai (Enarotali)", lat: -3.9333, lon: 136.3667 }, // Danau Paniai
+    { label: "Deiyai (Tigi)", lat: -4.0167, lon: 136.2333 },
+    { label: "Dogiyai (Kigamani)", lat: -4.0333, lon: 135.9333 },
+    { label: "Intan Jaya (Sugapa)", lat: -3.8333, lon: 137.0667 },
+    { label: "Puncak (Ilaga)", lat: -3.9167, lon: 137.6500 },   // Puncak Tertinggi
+    { label: "Puncak Jaya (Mulia)", lat: -3.7333, lon: 137.9667 }
+],
+"Papua Pegunungan": [
+    // --- LEMBAH BALIEM ---
+    { label: "Jayawijaya (Wamena)", lat: -4.0833, lon: 138.9333 }, // Ibukota Provinsi/Lembah
+
+    // --- PEGUNUNGAN & PEDALAMAN ---
+    { label: "Lanny Jaya (Tiom)", lat: -3.9167, lon: 138.5333 },
+    { label: "Mamberamo Tengah (Kobakma)", lat: -3.6667, lon: 139.1167 },
+    { label: "Nduga (Kenyam)", lat: -4.4333, lon: 138.1667 },
+    { label: "Tolikara (Karubaga)", lat: -3.5333, lon: 138.6000 },
+    { label: "Yahukimo (Dekai)", lat: -4.8333, lon: 139.5000 },
+    { label: "Yalimo (Elelim)", lat: -3.7667, lon: 139.3333 },
+    { label: "Pegunungan Bintang (Oksibil)", lat: -4.8833, lon: 140.6167 } // Perbatasan PNG
+],
+"Papua Selatan": [
+    // --- KOTA RUSA (Ibukota) ---
+    { label: "Merauke", lat: -8.4991, lon: 140.4049 },          // Ujung Timur Indonesia
+
+    // --- RAWA & SUNGAI ---
+    { label: "Asmat (Agats)", lat: -5.5333, lon: 138.1333 },    // Kota di Atas Papan/Lumpur
+    { label: "Mappi (Kepi)", lat: -6.5000, lon: 139.3333 },
+    { label: "Boven Digoel (Tanah Merah)", lat: -6.1000, lon: 140.3000 } // Area Sejarah
+]
+
+};
+
+/* =========================================================
+   3. INITIALIZATION
+========================================================= */
+document.addEventListener("DOMContentLoaded", () => {
+  populateProvinces();
+  setTodayDate();
+  getUserLocation();
+});
+
+function setTodayDate() {
+  const opt = { weekday: "long", year: "numeric", month: "long", day: "numeric" };
+  document.getElementById("hero-date").innerText =
+    new Date().toLocaleDateString("id-ID", opt);
+}
+
+/* =========================================================
+   4. POPULATE PROVINCE DROPDOWN
+========================================================= */
+function populateProvinces() {
+  const select = document.getElementById("provinceSelect");
+
+  Object.keys(indonesiaData).sort().forEach(prov => {
+    const opt = document.createElement("option");
+    opt.value = prov;
+    opt.textContent = prov;
+    select.appendChild(opt);
+  });
+
+  select.addEventListener("change", e => {
+    const prov = e.target.value;
+    if (!prov) return;
+    document.getElementById("gridTitle").innerText = `Cuaca di ${prov}`;
+    fetchBatchCities(indonesiaData[prov]);
+  });
+}
+
+/* =========================================================
+   5. CORE FETCH FUNCTIONS (LAT / LON)
+========================================================= */
+async function getWeatherByCoord(lat, lon) {
+  try {
+    const res = await fetch(
+      `${WEATHER_URL}?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric&lang=id`
+    );
+    if (!res.ok) throw new Error("Weather fetch failed");
+    return await res.json();
+  } catch (err) {
+    console.error("Weather error:", err);
+    return null;
+  }
+}
+
+/* =========================================================
+   6. UI UPDATE
+========================================================= */
+function updateHeroUI(data) {
+  if (!data) return;
+
+  const hero = document.getElementById("heroSection");
+  hero.style.opacity = "0.5";
+
+  setTimeout(() => {
+    document.getElementById("hero-city").innerText = `${data.name}, Indonesia`;
+    document.getElementById("hero-temp").innerText = `${Math.round(data.main.temp)}°`;
+    document.getElementById("hero-desc").innerText = data.weather[0].description;
+    document.getElementById("hero-feels").innerText = `${Math.round(data.main.feels_like)}°`;
+    document.getElementById("hero-humidity").innerText = `${data.main.humidity}%`;
+    document.getElementById("hero-wind").innerText = `${(data.wind.speed * 3.6).toFixed(1)} km/h`;
+    document.getElementById("hero-vis").innerText = `${(data.visibility / 1000).toFixed(1)} km`;
+    hero.style.opacity = "1";
+  }, 200);
+}
+
+async function createCityCard(weather) {
+  const div = document.createElement("div");
+  div.className = "glass-panel city-card";
+  div.onclick = () => updateHeroUI(weather);
+
+  const icon = `https://openweathermap.org/img/wn/${weather.weather[0].icon}@2x.png`;
+
+  div.innerHTML = `
+    <div class="card-header">
+      <div>
+        <div class="card-city">${weather.name}</div>
+        <div class="card-desc">${weather.weather[0].main}</div>
+      </div>
+      <img src="${icon}" class="card-icon">
+    </div>
+    <div class="card-temp">${Math.round(weather.main.temp)}°C</div>
+    <div class="card-stats">
+      <span>💧 ${weather.main.humidity}%</span>
+      <span>🌬 ${weather.wind.speed} m/s</span>
+    </div>
+  `;
+  return div;
+}
+
+/* =========================================================
+   7. FETCH BATCH CITIES (SAFE PARALLEL)
+========================================================= */
+async function fetchBatchCities(cities) {
+  const grid = document.getElementById("weatherGrid");
+  const loader = document.getElementById("loader");
+
+  grid.innerHTML = "";
+  loader.style.display = "block";
+
+  const results = await Promise.allSettled(
+    cities.map(c => getWeatherByCoord(c.lat, c.lon))
+  );
+
+  loader.style.display = "none";
+
+  for (const r of results) {
+    if (r.status === "fulfilled" && r.value) {
+      const card = await createCityCard(r.value);
+      grid.appendChild(card);
+    }
+  }
+}
+
+/* =========================================================
+   8. SEARCH (GEOCODING API)
+========================================================= */
+async function handleSearch() {
+  const query = document.getElementById("citySearch").value.trim();
+  if (!query) return;
+
+  document.getElementById("gridTitle").innerText = `Hasil pencarian: ${query}`;
+  document.getElementById("weatherGrid").innerHTML = "";
+  document.getElementById("loader").style.display = "block";
+
+  const geoRes = await fetch(
+    `${GEO_URL}?q=${query},ID&limit=1&appid=${API_KEY}`
+  );
+  const geoData = await geoRes.json();
+
+  document.getElementById("loader").style.display = "none";
+
+  if (!geoData.length) {
+    document.getElementById("weatherGrid").innerHTML =
+      `<p style="text-align:center;color:pink">Lokasi tidak ditemukan</p>`;
+    return;
+  }
+
+  const { lat, lon } = geoData[0];
+  const weather = await getWeatherByCoord(lat, lon);
+
+  if (weather) {
+    updateHeroUI(weather);
+    const card = await createCityCard(weather);
+    document.getElementById("weatherGrid").appendChild(card);
+  }
+}
+
+/* =========================================================
+   9. GEOLOCATION
+========================================================= */
+function getUserLocation() {
+  if (!navigator.geolocation) {
+    fetchBatchCities(indonesiaData["DKI Jakarta"]);
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    async pos => {
+      const weather = await getWeatherByCoord(
+        pos.coords.latitude,
+        pos.coords.longitude
+      );
+      updateHeroUI(weather);
+      fetchBatchCities(indonesiaData["DKI Jakarta"]);
+    },
+    () => {
+      fetchBatchCities(indonesiaData["DKI Jakarta"]);
+    }
+  );
+}
+
+/* =========================================================
+   10. ENTER KEY SEARCH
+========================================================= */
+document.getElementById("citySearch").addEventListener("keypress", e => {
+  if (e.key === "Enter") handleSearch();
+});
+</script>
+
+</body>
+</html>
